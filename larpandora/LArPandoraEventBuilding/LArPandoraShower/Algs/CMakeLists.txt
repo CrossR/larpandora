@@ -1,0 +1,26 @@
+art_make(LIB_LIBRARIES
+  larcorealg_Geometry
+  ROOT::Core
+  ROOT::Tree
+  ROOT::Graf3d
+  canvas::canvas
+  fhiclcpp::fhiclcpp
+  cetlib_except::cetlib_except
+  messagefacility::MF_MessageLogger
+  art::Framework_Core
+  art::Framework_Principal
+  art::Framework_Services_Registry
+  art_root_io::tfile_support
+  art_root_io::TFileService_service
+  art::Persistency_Provenance
+  art::Utilities
+  nusimdata::SimulationBase
+  lardataobj_RecoBase
+  larsim_MCCheater_BackTrackerService_service
+  larsim_MCCheater_ParticleInventoryService_service
+  lardataalg_DetectorInfo
+  )
+
+install_headers()
+install_source()
+install_fhicl()

@@ -1,7 +1,12 @@
 include_directories( $ENV{PANDORA_INC} )
 include_directories( $ENV{LARPANDORACONTENT_INC} )
+include_directories( $ENV{EIGEN_INC} )
 
-art_make(
+add_subdirectory(LArPandoraShower)
+add_subdirectory(SliceIdTools)
+add_subdirectory(fcl)
+
+art_make( EXCLUDE SimpleNeutrinoId_tool.cc
           LIB_LIBRARIES larcorealg_Geometry
                         larcore_Geometry_Geometry_service
                         larsim_Simulation lardataobj_Simulation
@@ -14,33 +19,30 @@ art_make(
                         larreco_RecoAlg
                         larreco_ClusterFinder
                         larreco_Calorimetry
-                        ${PANDORASDK}
-                        ${PANDORAMONITORING}
+                        PANDORASDK
+                        PANDORAMONITORING
                         LArPandoraContent
                         larpandora_LArPandoraInterface
-                        nusimdata_SimulationBase
-                        ${ART_FRAMEWORK_CORE}
-                        ${ART_FRAMEWORK_PRINCIPAL}
-                        ${ART_FRAMEWORK_SERVICES_REGISTRY}
-                        ${ART_FRAMEWORK_SERVICES_BASIC}
-                        ${ART_ROOT_IO_TFILE_SUPPORT} ROOT::Core
-                        ${ART_ROOT_IO_TFILESERVICE_SERVICE}
-                        art_Persistency_Common
-                        art_Persistency_Provenance
-                        art_Utilities
-                        canvas
-                        ${MF_MESSAGELOGGER}
-                        ${FHICLCPP}
-                        cetlib cetlib_except
-                        ${Boost_SYSTEM_LIBRARY}
-                        ${Boost_FILESYSTEM_LIBRARY}
+                        larpandora_LArPandoraInterface_Detectors
+                        nusimdata::SimulationBase
+                        art::Framework_Core
+                        art::Framework_Principal
+                        art::Framework_Services_Registry
+                        art_root_io::tfile_support
+                        ROOT::Core
+                        art_root_io::TFileService_service
+                        art::Persistency_Common
+                        art::Persistency_Provenance
+                        art::Utilities
+                        canvas::canvas
+                        messagefacility::MF_MessageLogger
+                        fhiclcpp::fhiclcpp
+                        cetlib::cetlib cetlib_except
+                        Boost::filesystem
                         ROOT::Geom
-                        ${ROOT_BASIC_LIB_LIST}
                         ROOT::GenVector
-                        MODULE_LIBRARIES larpandora_LArPandoraEventBuilding
+          MODULE_LIBRARIES larpandora_LArPandoraEventBuilding
           )
-
-      simple_plugin(SimpleNeutrinoId "tool" larpandora_LArPandoraEventBuilding)
 
 install_headers()
 install_fhicl()

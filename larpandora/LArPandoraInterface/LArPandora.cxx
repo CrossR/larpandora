@@ -184,7 +184,7 @@ void LArPandora::CreatePandoraInput(art::Event &evt, IdToHitMap &idToHitMap)
 
     LArPandoraHelper::CollectHits(evt, m_hitfinderModuleLabel, artHits);
 
-    if (m_enableMCParticles && !evt.isRealData())
+    if (m_enableMCParticles)
     {
         LArPandoraHelper::CollectMCParticles(evt, m_geantModuleLabel, artMCParticleVector);
 
@@ -201,20 +201,20 @@ void LArPandora::CreatePandoraInput(art::Event &evt, IdToHitMap &idToHitMap)
         else if (!areSimChannelsValid)
         {
             if (m_backtrackerModuleLabel.empty())
-	        throw cet::exception("LArPandora") << "LArPandora::CreatePandoraInput - Can't build MCParticle to Hit map." << std::endl <<
+                throw cet::exception("LArPandora") << "LArPandora::CreatePandoraInput - Can't build MCParticle to Hit map." << std::endl <<
                     "No SimChannels found with label \"" << m_simChannelModuleLabel << "\", and BackTrackerModuleLabel isn't set in FHiCL." << std::endl;
 
             LArPandoraHelper::BuildMCParticleHitMaps(evt, m_hitfinderModuleLabel, m_backtrackerModuleLabel, artHitsToTrackIDEs);
         }
         else
         {
-	    mf::LogDebug("LArPandora") << " *** LArPandora::CreatePandoraInput - empty list of sim channels found " << std::endl;
+            mf::LogDebug("LArPandora") << " *** LArPandora::CreatePandoraInput - empty list of sim channels found " << std::endl;
         }
     }
 
     LArPandoraInput::CreatePandoraHits2D(m_inputSettings, m_driftVolumeMap, artHits, idToHitMap);
 
-    if (m_enableMCParticles && !evt.isRealData())
+    if (m_enableMCParticles)
     {
         LArPandoraInput::CreatePandoraMCParticles(m_inputSettings, artMCTruthToMCParticles, artMCParticlesToMCTruth, generatorArtMCParticleVector);
         LArPandoraInput::CreatePandoraMCLinks2D(m_inputSettings, idToHitMap, artHitsToTrackIDEs);
@@ -229,7 +229,7 @@ void LArPandora::ProcessPandoraOutput(art::Event &evt, const IdToHitMap &idToHit
     {
         m_outputSettings.m_shouldProduceAllOutcomes = false;
         LArPandoraOutput::ProduceArtOutput(m_outputSettings, idToHitMap, evt);
-        
+
         if (m_shouldProduceAllOutcomes)
         {
             m_outputSettings.m_shouldProduceAllOutcomes = true;

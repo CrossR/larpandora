@@ -375,7 +375,7 @@ void LArPandoraInput::CreatePandoraMCParticles(const Settings &settings, const M
     const MCParticlesToMCTruth &particleToTruthMap, const RawMCParticleVector &generatorMCParticleVector)
 {
     mf::LogDebug("LArPandora") << " *** LArPandoraInput::CreatePandoraMCParticles(...) *** " << std::endl;
-    art::ServiceHandle<cheat::ParticleInventoryService> particleInventoryService;
+    // art::ServiceHandle<cheat::ParticleInventoryService> particleInventoryService;
 
     if (!settings.m_pPrimaryPandora)
         throw cet::exception("LArPandora") << "CreatePandoraMCParticles - primary Pandora instance does not exist ";
@@ -512,20 +512,12 @@ void LArPandoraInput::CreatePandoraMCParticles(const Settings &settings, const M
 
         // Find the source of the mc particle
         int nuanceCode(0);
-        const int trackID(particle->TrackId());
-        const simb::Origin_t origin(particleInventoryService->TrackIdToMCTruth(trackID).Origin());
+        // const int trackID(particle->TrackId());
+        // const simb::Origin_t origin(particleInventoryService->TrackIdToMCTruth(trackID).Origin());
 
         if (LArPandoraInput::IsPrimaryMCParticle(particle, primaryGeneratorMCParticleMap))
         {
             nuanceCode = 2001;
-        }
-        else if (simb::kCosmicRay == origin)
-        {
-            nuanceCode = 3000;
-        }
-        else if (simb::kSingleParticle == origin)
-        {
-            nuanceCode = 2000;
         }
 
         // Create 3D Pandora MC Particle

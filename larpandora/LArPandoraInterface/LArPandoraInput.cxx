@@ -15,6 +15,10 @@
 #include "larevt/CalibrationDBI/Interface/ChannelStatusService.h"
 #include "larevt/CalibrationDBI/Interface/ChannelStatusProvider.h"
 
+#include "lardata/DetectorInfoServices/DetectorClocksService.h"
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "larevt/SpaceChargeServices/SpaceChargeService.h"
+
 #include "nusimdata/SimulationBase/MCTruth.h"
 
 #include "larsim/MCCheater/ParticleInventoryService.h"
@@ -391,6 +395,39 @@ void LArPandoraInput::CreatePandoraMCParticles(const Settings &settings, const M
         particleMap[particle->TrackId()] = particle;
     }
 
+    // INFO: Correct an XYZ position for SCE and Timing offsets.
+    auto const* sceService = lar::providerFrom<spacecharge::SpaceChargeService>();
+    auto const& detPropService = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    auto const& detClockService = lar::providerFrom<detinfo::DetectorClocksService>();
+    double g4Ticks = -1;
+
+    for (MCTruthToMCParticles::const_iterator iter1 = truthToParticleMap.begin(), iterEnd1 = truthToParticleMap.end(); iter1 != iterEnd1; ++iter1)
+    {
+        const art::Ptr<simb::MCTruth> truth = iter1->first;
+
+        if (!truth->NeutrinoSet())
+            continue;
+
+        g4Ticks = detClockService->TPCG4Time2Tick(truth->GetNeutrino().Nu().T()) + detPropService->GetXTicksOffset(0,0,0) - detPropService->TriggerOffset();
+        break;
+    }
+
+    if (g4Ticks == -1)
+        throw cet::exception("LArPandora") << "CreatePandoraMCParticles - could not find primary neutrino for corrections! ";
+
+    double xTimeOffset = detPropService->ConvertTicksToX(g4Ticks, 0, 0, 0);
+
+    std::function<pandora::CartesianVector(double, double, double)> applyCorrection = [&](double x, double y, double z)
+    {
+        auto sceOffset = sceService->GetPosOffsets(geo::Point_t(x, y, z));
+
+        auto correctedX = (x - sceOffset.X()) + xTimeOffset + 0.6;
+        auto correctedY = y + sceOffset.Y();
+        auto correctedZ = z + sceOffset.Z();
+
+        return pandora::CartesianVector(correctedX, correctedY, correctedZ);
+    };
+
     // Loop over MC truth objects
     int neutrinoCounter(0);
 
@@ -416,9 +453,10 @@ void LArPandoraInput::CreatePandoraMCParticles(const Settings &settings, const M
             try
             {
                 mcParticleParameters.m_nuanceCode = neutrino.InteractionType();
+                mcParticleParameters.m_process = lar_content::MC_PROC_INCIDENT_NU;
                 mcParticleParameters.m_energy = neutrino.Nu().E();
                 mcParticleParameters.m_momentum = pandora::CartesianVector(neutrino.Nu().Px(), neutrino.Nu().Py(), neutrino.Nu().Pz());
-                mcParticleParameters.m_vertex = pandora::CartesianVector(neutrino.Nu().Vx(), neutrino.Nu().Vy(), neutrino.Nu().Vz());
+                mcParticleParameters.m_vertex = applyCorrection(neutrino.Nu().Vx(), neutrino.Nu().Vy(), neutrino.Nu().Vz());
                 mcParticleParameters.m_endpoint = pandora::CartesianVector(neutrino.Nu().Vx(), neutrino.Nu().Vy(), neutrino.Nu().Vz());
                 mcParticleParameters.m_particleId = neutrino.Nu().PdgCode();
                 mcParticleParameters.m_mcParticleType = pandora::MC_3D;
@@ -519,6 +557,10 @@ void LArPandoraInput::CreatePandoraMCParticles(const Settings &settings, const M
         {
             nuanceCode = 2001;
         }
+        else
+        {
+            nuanceCode = 2000;
+        }
 
         // Create 3D Pandora MC Particle
         lar_content::LArMCParticleParameters mcParticleParameters;
@@ -526,11 +568,12 @@ void LArPandoraInput::CreatePandoraMCParticles(const Settings &settings, const M
         try
         {
             mcParticleParameters.m_nuanceCode = nuanceCode;
+            mcParticleParameters.m_process = lar_content::MC_PROC_UNKNOWN; // TODO: Temp hack -> Not needed for DL vertexing.
             mcParticleParameters.m_energy = E;
             mcParticleParameters.m_particleId = particle->PdgCode();
             mcParticleParameters.m_momentum = pandora::CartesianVector(pX, pY, pZ);
-            mcParticleParameters.m_vertex = pandora::CartesianVector(vtxX, vtxY, vtxZ);
-            mcParticleParameters.m_endpoint = pandora::CartesianVector(endX, endY, endZ);
+            mcParticleParameters.m_vertex = applyCorrection(vtxX, vtxY, vtxZ);
+            mcParticleParameters.m_endpoint = applyCorrection(endX, endY, endZ);
             mcParticleParameters.m_mcParticleType = pandora::MC_3D;
             mcParticleParameters.m_pParentAddress = (void*)((intptr_t)particle->TrackId());
         }
